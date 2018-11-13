@@ -160,21 +160,33 @@ fn main() {
     }
 }
 
+fn score(grid: &Grid, payouts: [i32; 25]) -> GridResult {
+    GridResult {
+        rows: [calculate_expected_row_value(&grid, 0, payouts), calculate_expected_row_value(&grid, 1, payouts), calculate_expected_row_value(&grid, 2, payouts)],
+        columns: [calculate_expected_column_value(&grid, 0, payouts), calculate_expected_column_value(&grid, 1, payouts), calculate_expected_column_value(&grid, 2, payouts)],
+        diagonals: [calculate_expected_diagonal_value(&grid, 0, payouts), calculate_expected_diagonal_value(&grid, 1, payouts)]
+    }
+}
+
+fn calculate_average_increase(grid: &Grid, payouts: [i32; 25], point: (i32, i32)) -> GridResult {    
+    //let unused_count = grid.used_digits.iter().enumerate().filter(|(_, b)| !**b).count() as i32;        
+    grid.used_digits.iter().enumerate().filter(|(_, b)| !**b).map(|(i, _)| { score(&grid.set(Some((i + 1) as u8), point), payouts) }).sum::<GridResult>()
+}
+
+
 // Numbers in a range.
 // If the first number is 1, then the range can of payouts can be [1+2+3, 1+8+9] = [6, 18]
 //
 // Calculate the expected of a row
-fn calculate_row_candidates(grid: &Grid, row: u32, payouts:[i32; 25]) -> i32 {
-   let digits = [grid.grid[row as usize][0], grid.grid[row as usize][1], grid.grid[row as usize][2]];
-   return calculate_expected_value(grid, payouts, digits);
+fn calculate_expected_row_value(grid: &Grid, row: u32, payouts:[i32; 25]) -> i32 {   
+   return calculate_expected_value(grid, payouts, [grid.grid[row as usize][0], grid.grid[row as usize][1], grid.grid[row as usize][2]]);
 }
 
-fn calculate_column_candidates(grid: &Grid, column: u32, payouts:[i32; 25]) -> i32 {
-    let digits = [grid.grid[0][column as usize], grid.grid[1][column as usize], grid.grid[2][column as usize]];
-    return calculate_expected_value(grid, payouts, digits);
+fn calculate_expected_column_value(grid: &Grid, column: u32, payouts:[i32; 25]) -> i32 {    
+    return calculate_expected_value(grid, payouts, [grid.grid[0][column as usize], grid.grid[1][column as usize], grid.grid[2][column as usize]]);
 }
 
-fn calculate_diagonal_candidates(grid: &Grid, diagonal: u32, payouts: [i32; 25]) -> i32 {
+fn calculate_expected_diagonal_value(grid: &Grid, diagonal: u32, payouts: [i32; 25]) -> i32 {
     match diagonal {
         0 => calculate_expected_value(grid, payouts, [grid.grid[0][0], grid.grid[1][1], grid.grid[2][2]]),
         1 => calculate_expected_value(grid, payouts, [grid.grid[0][2], grid.grid[1][1], grid.grid[2][0]]),
@@ -203,41 +215,10 @@ fn calculate_candidate_sums(used: Vec<u8>, unused_digits: Vec<u8>) -> Vec<i32> {
     match used.len() {
         3 => vec!(used.into_iter().map(|x| x as i32).sum()),
         _ => unused_digits.iter().flat_map(|x| {
-            let mut u = used.clone();
-            let d = unused_digits.clone().into_iter();
+            let mut u = used.clone();            
             u.push(x.clone());
-            calculate_candidate_sums(u, d.filter(|a| x != a).collect())
+            calculate_candidate_sums(u, unused_digits.clone().into_iter().filter(|a| x != a).collect())
         }).collect()
-    }
-}
-
-fn calculate_average_increase(grid: &Grid, payouts: [i32; 25], point: (i32, i32)) -> GridResult {
-    let (y, x) = point;
-    let unused_digits = grid.used_digits.iter().enumerate().filter(|(_, b)| !**b).count() as i32;    
-    
-    grid.used_digits.iter().enumerate().filter(|(_, b)| !**b).map(|(i, _)| {
-        let sc = score(&grid.set(Some((i + 1) as u8), (y, x)), payouts);
-        sc
-    }).sum::<GridResult>()
-}
-
-fn score(grid: &Grid, payouts: [i32; 25]) -> GridResult {
-
-    GridResult {
-        rows: [
-            calculate_row_candidates(&grid, 0, payouts),
-            calculate_row_candidates(&grid, 1, payouts),
-            calculate_row_candidates(&grid, 2, payouts)
-        ],
-        columns: [
-            calculate_column_candidates(&grid, 0, payouts),
-            calculate_column_candidates(&grid, 1, payouts),
-            calculate_column_candidates(&grid, 2, payouts)
-        ],
-        diagonals: [
-            calculate_diagonal_candidates(&grid, 0, payouts),
-            calculate_diagonal_candidates(&grid, 1, payouts)
-        ]
     }
 }
 
